@@ -43,11 +43,17 @@ class FrankensteinCaption(nn.Module):
             num_layers,
         )
 
-        self.proj = nn.Linear(embed_dim, vocab_size)
-
     def forward(self, x, memory):
         x = self.emb(x) + self.pos_emb(x)
-        x = self.transformer(x, memory)
+        causal_mask = nn.Transformer.generate_square_subsequent_mask(x.size(1)).to(
+            x.device
+        )
+        x = self.transformer(
+            x,
+            memory,
+            tgt_is_causal=True,
+            tgt_mask=causal_mask.repeat(memory.size(0), 1, 1),
+        )
         return x
 
 
@@ -65,18 +71,21 @@ class SinusoidalPositionalEmbeddings(nn.Module):
         self.register_buffer("pe", pe)
 
     def forward(self, x):
-        seq_len = x.size(-2)
+        seq_len = x.size(-1)
         return self.pe[:seq_len].unsqueeze(0)
 
 
-def get_gpt2_based_decoder():
+def get_gpt2_based_decoder(num_layers=2):
     tokenizer = GPT2TokeniserPlus()
 
     model = AutoModelForCausalLM.from_pretrained("openai-community/gpt2")
     wte = model.transformer.wte.weight.data
 
     decoder = FrankensteinCaption(
-        vocab_size=tokenizer.vocab_size, embed_dim=768, num_layers=12, num_heads=12
+        vocab_size=tokenizer.vocab_size,
+        embed_dim=768,
+        num_layers=num_layers,
+        num_heads=12,
     )
 
     decoder.emb.weight.data[: wte.shape[0]] = wte
