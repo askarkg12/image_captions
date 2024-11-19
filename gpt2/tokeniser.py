@@ -31,3 +31,9 @@ class GPT2TokeniserPlus:
 
     # def __getattr__(self, name):
     #     return getattr(self.tokenizer, name)
+
+
+if __name__ == "__main__":
+    tokeniser = GPT2TokeniserPlus()
+
+    tokeniser.tokenizer.save_pretrained("gpt2_tokeniser_plus")
