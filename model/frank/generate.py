@@ -41,9 +41,9 @@ class CaptionGenerator:
         # Generate tokens until EOS or max_length
         while current_tokens.size(1) < max_length:
             # Get model predictions for next token
-            with torch.no_grad():
+            with torch.inference_mode():
                 outputs = self.model(image, current_tokens)
-                next_token_logits = outputs.logits[:, -1, :]
+                next_token_logits = outputs[:, -1, :]
 
             # Apply temperature scaling
             next_token_logits = next_token_logits / temperature
@@ -58,6 +58,9 @@ class CaptionGenerator:
 
             # Sample next token
             next_token = torch.multinomial(probs, num_samples=1)
+             
+            # just argmax
+            # next_token = torch.argmax(probs).unsqueeze(0).unsqueeze(0)
 
             # Append next token to sequence
             current_tokens = torch.cat([current_tokens, next_token], dim=1)

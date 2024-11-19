@@ -53,7 +53,7 @@ class FrankensteinCaption(nn.Module):
             x,
             memory,
             tgt_is_causal=True,
-            tgt_mask=causal_mask.repeat(memory.size(0), 1, 1),
+            tgt_mask=causal_mask
         )
         return x
 

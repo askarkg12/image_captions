@@ -12,7 +12,7 @@ from model.frank.decoder import get_gpt2_based_decoder
 
 
 class BaselineImgCaptionGen(nn.Module):
-    def __init__(self, *, decoder_layers=2):
+    def __init__(self, *, decoder_layers=12):
         super().__init__()
 
         self.encoder = tapped_vit_b_16.ImageEncoder()
