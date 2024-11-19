@@ -39,6 +39,7 @@ class FrankensteinCaption(nn.Module):
                 d_model=embed_dim,
                 nhead=num_heads,
                 dim_feedforward=ff_dim,
+                batch_first=True,
             ),
             num_layers,
         )

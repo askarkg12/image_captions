@@ -7,7 +7,6 @@ import sys
 sys.path.append(str(Path(__file__).parent.parent.parent))
 
 from model.frank import tapped_vit_b_16
-from model.frank.tapped_vit_b_16 import ImageEncoder
 
 from model.frank.decoder import get_gpt2_based_decoder
 
