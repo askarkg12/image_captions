@@ -35,21 +35,21 @@ def log_image_caption(
             f"caption_evolution/{image_id}": wandb.Image(
                 image,
                 caption=generated_caption,
-                masks={
-                    "predictions": {
-                        "mask_data": None,  # No mask for this example
-                        "class_labels": {
-                            "Generated": generated_caption,
-                            **{
-                                f"Reference {i+1}": cap
-                                for i, cap in enumerate(reference_captions)
-                            },
-                        },
-                    }
-                },
+                # masks={
+                #     "predictions": {
+                #         "mask_data": None,  # No mask for this example
+                #         "class_labels": {
+                #             "Generated": generated_caption,
+                #             **{
+                #                 f"Reference {i+1}": cap
+                #                 for i, cap in enumerate(reference_captions)
+                #             },
+                #         },
+                #     }
+                # },
             ),
             f"captions_table/{image_id}": caption_table,
             "epoch": epoch,
-            "batch": batch_idx,
+            "batch_num": batch_idx,
         }
     )

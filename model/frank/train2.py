@@ -5,6 +5,8 @@ import sys
 from torch.utils.data import DataLoader
 import wandb
 
+from tqdm import tqdm
+
 sys.path.append(str(Path(__file__).parent.parent.parent))
 
 from model.frank.baseline_model import BaselineImgCaptionGen
@@ -15,14 +17,14 @@ from val_utils.wandb_utils import log_image_caption
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
-BATCH_SIZE = 48
-USE_WANDB = False
-CHECKPOINTS_PERIOD = 30
+BATCH_SIZE = 40
+USE_WANDB = True
+CHECKPOINTS_PERIOD = 500
 
 CHECKPOINT_DIR = Path(__file__).parent / "checkpoints"
 CHECKPOINT_DIR.mkdir(exist_ok=True, parents=True)
 
-LAST_CHECKPOINT = CHECKPOINT_DIR / "checkpoint_0_0.pt"
+LAST_CHECKPOINT = CHECKPOINT_DIR / "checkpoint_0_1000.pt"
 
 model = BaselineImgCaptionGen().to(device)
 
@@ -31,8 +33,8 @@ if LAST_CHECKPOINT.exists():
 
 model.train()
 
-train_ds = FlickrDataset(split="train", split_size=1000)
-val_ds = FlickrDataset(split="val", split_size=100)
+train_ds = FlickrDataset(split="train")
+val_ds = FlickrDataset(split="val")
 
 tokeniser = train_ds.tokenizer
 
@@ -66,7 +68,10 @@ if USE_WANDB:
         "checkpoint_period": CHECKPOINTS_PERIOD,
         "lr": 1e-5,
     }
-    wandb.init(project="frank", entity="nlphuji", config=config)
+    wandb.init(project="img_caption", name="frank", config=config)
+
+
+checkpoint_progress = tqdm(total=CHECKPOINTS_PERIOD, desc="Checkpioint progress")
 
 while True:
     try:
@@ -146,24 +151,28 @@ while True:
                         image_id=img_index,
                     )
                 else:
+                    print("=========================")
                     print(f"Generated: {generated_text}")
                     print(f"Reference: {ref_captions}")
 
             checkpoint_path = CHECKPOINT_DIR / f"checkpoint_{epoch}_{batch_counter}.pt"
             torch.save(model.state_dict(), checkpoint_path)
 
-            if USE_WANDB:
-                artifact = wandb.Artifact(
-                    "baseline_model",
-                    type="model",
-                    metadata={"epoch": epoch, "batch": batch_counter},
-                )
-                artifact.add_file(checkpoint_path)
-                wandb.log_artifact(artifact)
+            # if USE_WANDB:
+            #     artifact = wandb.Artifact(
+            #         "baseline_model",
+            #         type="model",
+            #         metadata={"epoch": epoch, "batch": batch_counter},
+            #     )
+            #     artifact.add_file(checkpoint_path)
+            #     wandb.log_artifact(artifact)
 
             model.train()
 
+            checkpoint_progress.reset()
+
         batch_counter += 1
+        checkpoint_progress.update()
     except KeyboardInterrupt:
         print("\nTraining interrupted by user")
         break

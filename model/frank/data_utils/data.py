@@ -1,5 +1,7 @@
 import torch
 import torchvision
+import pickle
+import os
 from torch.nn.utils.rnn import pad_sequence
 import torchvision.transforms as T
 from torch.utils.data import Dataset
@@ -21,6 +23,7 @@ class FlickrDataset(Dataset):
         self,
         split: str = "train",
         split_size: int | float = None,
+        cache_path: str | Path | None = None,
     ):
         self.tokenizer = GPT2TokeniserPlus()
         # Padding token is outside of vocab
@@ -28,6 +31,16 @@ class FlickrDataset(Dataset):
         self.img_to_tensor = (
             torchvision.models.ViT_B_16_Weights.IMAGENET1K_V1.transforms()
         )
+        if cache_path is None:
+            cache_path = Path(__file__).parent / f"flickr_cache_{split}.pkl"
+
+        if cache_path is not None:
+            if os.path.exists(cache_path):
+                data = pickle.load(open(cache_path, "rb"))
+                self.id_to_img, self.img_caption_pairs = data
+                return
+            else:
+                print(f"Cache file not found at {cache_path}, re-creating data")
 
         if isinstance(split_size, float):
             if split_size > 1 or split_size < 0:
@@ -44,7 +57,7 @@ class FlickrDataset(Dataset):
             # Fake random sampling of subset
             hg_ds = hg_ds.train_test_split(test_size=ratio)["test"]
         self.id_to_img = {
-            int(row["img_id"]): self.img_to_tensor(row["image"]).to(requires_grad=False)
+            int(row["img_id"]): self.img_to_tensor(row["image"])
             for row in tqdm(hg_ds, desc="Preprocessing images")
         }
 
@@ -52,6 +65,12 @@ class FlickrDataset(Dataset):
         for row in hg_ds:
             pairs = [(int(row["img_id"]), caption) for caption in row["caption"]]
             self.img_caption_pairs.extend(pairs)
+
+        if cache_path is not None:
+            with open(cache_path, "wb") as f:
+                data = (self.id_to_img, self.img_caption_pairs)
+                pickle.dump(data, f)
+                print(f"Data saved to {cache_path}")
 
     # def resize_to_width(self, img: Image.Image, width: int):
     #     wpercent = width / float(img.size[0])
@@ -68,7 +87,7 @@ class FlickrDataset(Dataset):
             self.tokenizer.encode(caption, add_bos=True, add_eos=True)
         )
         return (
-            self.img_to_tensor(self.id_to_img[img_id]),
+            self.id_to_img[img_id],
             tokens[:-1],
             tokens[1:],
         )
