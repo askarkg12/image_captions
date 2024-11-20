@@ -33,3 +33,13 @@ class BaselineImgCaptionGen(nn.Module):
         out = self.proj(caption_embeds)
 
         return out
+
+
+if __name__ == "__main__":
+    model = BaselineImgCaptionGen()
+
+    model_scripted = torch.jit.script(model)
+
+    model_scripted.save("baseline_model.pt")
+    # print(model)
+    pass

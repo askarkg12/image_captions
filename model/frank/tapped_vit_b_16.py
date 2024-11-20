@@ -5,8 +5,8 @@ import torchvision
 class ImageEncoder(nn.Module):
     def __init__(self):
         super().__init__()
-        self.weights = torchvision.models.ViT_B_16_Weights.IMAGENET1K_V1
-        self.model = torchvision.models.vit_b_16(weights=self.weights)
+        weights = torchvision.models.ViT_B_16_Weights.IMAGENET1K_V1
+        self.model = torchvision.models.vit_b_16(weights=weights)
 
         self.img_embeds = None
 

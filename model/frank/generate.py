@@ -1,5 +1,7 @@
 import torch
+import torchvision
 import torch.nn.functional as F
+from PIL.Image import Image
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -15,6 +17,9 @@ class CaptionGenerator:
         # default_rep_penalty: float = 1.0,
     ) -> None:
         self.model = model
+        self.img_to_tensor = (
+            torchvision.models.ViT_B_16_Weights.IMAGENET1K_V1.transforms()
+        )
         self.tokeniser = tokeniser
         self.default_max_length = default_max_length
         self.default_temp = default_temp
@@ -22,12 +27,14 @@ class CaptionGenerator:
 
     def generate(
         self,
-        image: torch.Tensor,
+        image: torch.Tensor | Image,
         *,
         max_length=None,
         temperature=None,
         # repetition_penalty=None,
     ):
+        if isinstance(image, Image):
+            image = self.img_to_tensor(image).unsqueeze(0).to(device)
         if max_length is None:
             max_length = self.default_max_length
         if temperature is None:
@@ -58,7 +65,7 @@ class CaptionGenerator:
 
             # Sample next token
             next_token = torch.multinomial(probs, num_samples=1)
-             
+
             # just argmax
             # next_token = torch.argmax(probs).unsqueeze(0).unsqueeze(0)
 
