@@ -44,7 +44,7 @@ class FlickrDataset(Dataset):
             # Fake random sampling of subset
             hg_ds = hg_ds.train_test_split(test_size=ratio)["test"]
         self.id_to_img = {
-            int(row["img_id"]): row["image"]
+            int(row["img_id"]): self.img_to_tensor(row["image"]).to(requires_grad=False)
             for row in tqdm(hg_ds, desc="Preprocessing images")
         }
 

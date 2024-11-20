@@ -22,14 +22,17 @@ CHECKPOINTS_PERIOD = 30
 CHECKPOINT_DIR = Path(__file__).parent / "checkpoints"
 CHECKPOINT_DIR.mkdir(exist_ok=True, parents=True)
 
+LAST_CHECKPOINT = CHECKPOINT_DIR / "checkpoint_0_0.pt"
+
 model = BaselineImgCaptionGen().to(device)
 
-state_dict = model.state_dict()
+if LAST_CHECKPOINT.exists():
+    model.load_state_dict(torch.load(LAST_CHECKPOINT))
 
 model.train()
 
-train_ds = FlickrDataset(split="train")
-val_ds = FlickrDataset(split="val")
+train_ds = FlickrDataset(split="train", split_size=1000)
+val_ds = FlickrDataset(split="val", split_size=100)
 
 tokeniser = train_ds.tokenizer
 
@@ -63,7 +66,7 @@ if USE_WANDB:
         "checkpoint_period": CHECKPOINTS_PERIOD,
         "lr": 1e-5,
     }
-    wandb.init(project="frank", entity="nlphuji")
+    wandb.init(project="frank", entity="nlphuji", config=config)
 
 while True:
     try:
