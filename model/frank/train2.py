@@ -176,3 +176,23 @@ while True:
     except KeyboardInterrupt:
         print("\nTraining interrupted by user")
         break
+    except RuntimeError as e:
+        if "out of memory" in str(e):
+            # reduce batch size by 10%
+            BATCH_SIZE = int(BATCH_SIZE * 0.9)
+
+            train_dl = DataLoader(
+                train_ds,
+                batch_size=BATCH_SIZE,
+                shuffle=True,
+                collate_fn=train_ds.collate_fn,
+            )
+            train_iter = iter(train_dl)
+            val_ds = DataLoader(
+                val_ds,
+                batch_size=BATCH_SIZE,
+                shuffle=True,
+                collate_fn=val_ds.collate_fn,
+            )
+        else:
+            raise e
