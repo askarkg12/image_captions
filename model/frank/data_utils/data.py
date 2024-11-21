@@ -23,7 +23,6 @@ class FlickrDataset(Dataset):
         self,
         split: str = "train",
         split_size: int | float = None,
-        cache_path: str | Path | None = None,
     ):
         self.tokenizer = GPT2TokeniserPlus()
         # Padding token is outside of vocab
@@ -31,16 +30,6 @@ class FlickrDataset(Dataset):
         self.img_to_tensor = (
             torchvision.models.ViT_B_16_Weights.IMAGENET1K_V1.transforms()
         )
-        if cache_path is None:
-            cache_path = Path(__file__).parent / f"flickr_cache_{split}.pkl"
-
-        if cache_path is not None:
-            if os.path.exists(cache_path):
-                data = pickle.load(open(cache_path, "rb"))
-                self.id_to_img, self.img_caption_pairs = data
-                return
-            else:
-                print(f"Cache file not found at {cache_path}, re-creating data")
 
         if isinstance(split_size, float):
             if split_size > 1 or split_size < 0:
@@ -65,17 +54,6 @@ class FlickrDataset(Dataset):
         for row in hg_ds:
             pairs = [(int(row["img_id"]), caption) for caption in row["caption"]]
             self.img_caption_pairs.extend(pairs)
-
-        if cache_path is not None:
-            with open(cache_path, "wb") as f:
-                data = (self.id_to_img, self.img_caption_pairs)
-                pickle.dump(data, f)
-                print(f"Data saved to {cache_path}")
-
-    # def resize_to_width(self, img: Image.Image, width: int):
-    #     wpercent = width / float(img.size[0])
-    #     hsize = int((float(img.size[1]) * float(wpercent)))
-    #     return img.resize((width, hsize), Image.Resampling.LANCZOS)
 
     def __len__(self):
         return len(self.img_caption_pairs)
