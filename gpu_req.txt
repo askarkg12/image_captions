@@ -7,3 +7,4 @@ transformers
 torchtune 
 torchao 
 datasets
+minio
