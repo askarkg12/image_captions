@@ -4,6 +4,18 @@ from pathlib import Path
 import sys
 from torch.utils.data import DataLoader
 import wandb
+from minio import Minio
+
+minio_client = Minio(
+    "sulaiman-ov.com:9000",
+    access_key="FILLKEY",
+    secret_key="FILLKEY",
+    secure=False,
+)
+
+
+# def get_checkpoint_minio():
+
 
 from tqdm import tqdm
 
@@ -24,7 +36,12 @@ CHECKPOINTS_PERIOD = 500
 CHECKPOINT_DIR = Path(__file__).parent / "checkpoints"
 CHECKPOINT_DIR.mkdir(exist_ok=True, parents=True)
 
-LAST_CHECKPOINT = CHECKPOINT_DIR / "checkpoint_0_1000.pt"
+LAST_CHECKPOINT = CHECKPOINT_DIR / "latest_checkpoint.pth"
+minio_client.fget_object(
+    "data",
+    "transformer_latest.pth",
+    str(LAST_CHECKPOINT),
+)
 
 model = BaselineImgCaptionGen().to(device)
 
@@ -155,8 +172,14 @@ while True:
                     print(f"Generated: {generated_text}")
                     print(f"Reference: {ref_captions}")
 
-            checkpoint_path = CHECKPOINT_DIR / f"checkpoint_{epoch}_{batch_counter}.pt"
-            torch.save(model.state_dict(), checkpoint_path)
+            # checkpoint_path = CHECKPOINT_DIR / f"checkpoint_{epoch}_{batch_counter}.pt"
+            torch.save(model.state_dict(), LAST_CHECKPOINT)
+
+            minio_client.fput_object(
+                "data",
+                "transformer_latest.pth",
+                str(LAST_CHECKPOINT),
+            )
 
             # if USE_WANDB:
             #     artifact = wandb.Artifact(
