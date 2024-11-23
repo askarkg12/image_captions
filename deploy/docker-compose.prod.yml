@@ -1,0 +1,150 @@
+services:
+  # nginx:
+  #   build:
+  #     context: ./nginx
+  #     dockerfile: Dockerfile
+  #   image: kalebrs/imagecaption-nginx:latest
+  #   env_file:
+  #     - .env.prod
+  #   ports:
+  #     - "80:80"
+  #     - "443:443"
+  #   volumes:
+  #     - ./image_caption/nginx/conf.d:/etc/nginx/conf.d
+  #   networks:
+  #     - app-network
+  #   healthcheck:
+  #     test: |
+  #       CMD-SHELL
+  #       echo "Testing Frontend connection..." &&
+  #       curl -f http://ic_frontend:8501/_stcore/health &&
+  #       echo "Testing Backend connection..." &&
+  #       curl -f http://ic_backend:8051/health ||
+  #       exit 1
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 3
+  #     start_period: 30s
+  #   depends_on:
+  #     frontend:
+  #       condition: service_healthy
+  #     backend:
+  #       condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    image: kalebrs/imagecaption-frontend:latest
+    env_file:
+      - .env.prod
+    environment:
+      - ENV=dev
+      - BACKEND_URL=http://backend:8051
+    depends_on:
+      backend:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    networks:
+      - app-network
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -v http://localhost:8501/_stcore/health || echo 'Health check failed' >&2" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    ports:
+      - "8501:8501"
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: kalebrs/imagecaption-backend:latest
+    env_file:
+      - .env.prod
+    environment:
+      - ENV=prod
+      # - MINIO_URL=http://sulaiman-ov.com:9000
+      - MINIO_SECURE=false
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8051/health" ]
+      interval: 30s
+      timeout: 30s
+      retries: 5
+      start_period: 60s
+    networks:
+      - app-network
+    ports:
+      - "8051:8051"
+
+  # minio:
+  #   build:
+  #     context: ./minio
+  #     dockerfile: Dockerfile
+  #   image: kalebrs/imagecaption-minio:latest
+  #   env_file:
+  #     - .env.prod
+  #   ports:
+  #     - "9000:9000"
+  #     - "9001:9001"
+  #   volumes:
+  #     - minio_data:/data
+  #   healthcheck:
+  #     test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+  #     interval: 10s
+  #     timeout: 10s
+  #     retries: 3
+  #     start_period: 10s
+  #   networks:
+  #     - app-network
+
+  postgres:
+    build:
+      context: ./postgres
+      dockerfile: Dockerfile
+    image: kalebrs/imagecaption-postgres:latest
+    env_file:
+      - .env.prod
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - app-network
+    ports:
+      - "5432:5432"
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    env_file:
+      - .env.prod
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
+    ports:
+      - "5050:80"
+    networks:
+      - app-network
+    restart: unless-stopped
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  letsencrypt:
+  webroot:
+  minio_data:
+    driver: local
+  postgres_data:
+    driver: local
+  pgadmin_data:
+    driver: local
